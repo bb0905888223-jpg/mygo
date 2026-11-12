@@ -1,0 +1,1428 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>佑哥食堂｜候位・點餐・廚房</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  [hidden] { display: none !important; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Hiragino Sans GB", "Microsoft JhengHei", sans-serif;
+    background: #f6e7d8;
+    color: #4e342e;
+    min-height: 100vh;
+    padding-bottom: 24px;
+  }
+  .container { max-width: 480px; margin: 0 auto; padding: 16px 14px; }
+  header { position: relative; text-align: center; padding: 16px 0 10px; }
+  header .logo { font-size: 40px; }
+  header h1 { font-size: 26px; color: #d35400; margin-top: 2px; }
+  header p { color: #8d6e63; font-size: 13px; margin-top: 2px; }
+  .reset-btn { position: absolute; top: 10px; right: 0; padding: 7px 12px; border-radius: 20px; border: 1px solid #e0c4ae; background: #fffaf6; color: #6d4c41; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; }
+  .reset-btn:active { background: #fde9dc; border-color: #d35400; color: #d35400; }
+  .reset-desc { font-size: 14px; line-height: 1.5; color: #6d4c41; background: #fff4e5; border: 1px solid #ffcc80; border-radius: 10px; padding: 10px 12px; margin: 8px 0 14px; }
+  .reset-actions { display: flex; gap: 8px; }
+  .reset-actions .btn-sm { flex: 1; }
+
+  /* 分頁 */
+  .tabs { display: flex; gap: 6px; background: #fff; padding: 6px; border-radius: 14px; border: 1px solid #f3e2d3; box-shadow: 0 2px 8px rgba(210,84,0,.08); margin-bottom: 8px; }
+  .tab { flex: 1; border: none; background: transparent; border-radius: 10px; padding: 10px 4px; font-size: 15px; font-weight: 700; color: #8d6e63; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; }
+  .tab.active { background: #d35400; color: #fff; }
+  .badge { min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px; background: #efebe8; color: #6d4c41; font-size: 13px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; }
+  .tab.active .badge { background: #fff; color: #d35400; }
+  .tab-summary { text-align: center; font-size: 12px; color: #8d6e63; margin-bottom: 12px; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .card { background: #fff; border-radius: 16px; padding: 18px 16px; margin-bottom: 14px; box-shadow: 0 2px 8px rgba(210,84,0,.08); border: 1px solid #f3e2d3; }
+  .card h2 { font-size: 19px; margin-bottom: 4px; color: #6d4c41; }
+  .hint { font-size: 13px; color: #8d6e63; margin-bottom: 10px; }
+
+  label { display: block; font-size: 15px; font-weight: 700; margin: 12px 0 6px; color: #6d4c41; }
+  #nameInput, #allergyNote { width: 100%; padding: 13px; font-size: 17px; border: 1px solid #e0c4ae; border-radius: 10px; outline: none; background: #fffaf6; }
+  #allergyNote { font-size: 16px; }
+  #nameInput:focus, #allergyNote:focus { border-color: #d35400; }
+
+  .stepper { display: flex; align-items: center; gap: 14px; }
+  .stepper button { width: 48px; height: 48px; font-size: 24px; border-radius: 10px; border: 1px solid #e0c4ae; background: #fff8f2; color: #d35400; font-weight: 700; cursor: pointer; }
+  .stepper span { font-size: 24px; font-weight: 800; min-width: 44px; text-align: center; }
+
+  .btn-primary { width: 100%; margin-top: 16px; padding: 15px; font-size: 18px; font-weight: 700; color: #fff; background: #d35400; border: none; border-radius: 12px; cursor: pointer; }
+  .btn-primary:active { background: #a04000; }
+  .btn-primary:disabled { background: #d7ccc8; color: #fff; }
+
+  .error-msg { display: none; margin-top: 10px; color: #c62828; font-size: 15px; font-weight: 700; }
+  .error-msg.show { display: block; }
+
+  .ticket-box { text-align: center; margin-top: 16px; background: #fff8f2; border: 1px dashed #d35400; border-radius: 12px; padding: 14px; }
+  .ticket-box p { color: #8d6e63; font-size: 14px; }
+  #ticketNumber { font-size: 56px; font-weight: 800; color: #d35400; letter-spacing: 2px; line-height: 1.2; }
+
+  /* 桌位 */
+  .table-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .table-card { border-radius: 12px; padding: 10px 8px; text-align: center; border: 2px dashed #e0c4ae; background: #fffdfa; }
+  .table-card.free { border-color: #a5d6a7; background: #f4faf4; }
+  .table-card.occupied { border-style: solid; border-color: #d35400; background: #fff4ec; }
+  .table-no { display: block; font-size: 15px; font-weight: 800; color: #4e342e; }
+  .table-cap { display: block; font-size: 12px; color: #8d6e63; margin-top: 1px; }
+  .table-status { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 20px; margin-top: 6px; color: #fff; }
+  .table-status.off { background: #66bb6a; }
+  .table-status.on { background: #d35400; }
+  .table-guest { font-size: 13px; font-weight: 700; color: #6d4c41; margin-top: 4px; min-height: 18px; word-break: break-all; }
+  .btn-tiny { margin-top: 6px; padding: 5px 10px; font-size: 12px; font-weight: 700; border-radius: 8px; border: 1px solid #d7ccc8; background: #fff; color: #757575; cursor: pointer; }
+
+  /* 候位名單 */
+  .waiting-list { list-style: none; }
+  .waiting-item { background: #fff8f2; border: 1px solid #f3e2d3; border-radius: 12px; padding: 12px; margin-bottom: 10px; }
+  .waiting-item.called { background: #edf7ee; border-color: #a5d6a7; }
+  .waiting-item.skipped { background: #f7f4f2; border-color: #d7ccc8; }
+  .item-head { display: flex; align-items: center; gap: 10px; }
+  .ticket-badge { background: #d35400; color: #fff; font-weight: 800; padding: 8px 10px; border-radius: 8px; min-width: 54px; text-align: center; font-size: 15px; }
+  .waiting-item.called .ticket-badge { background: #2e7d32; }
+  .waiting-item.skipped .ticket-badge { background: #9e9e9e; }
+  .info { flex: 1; min-width: 0; }
+  .name { font-weight: 700; font-size: 17px; }
+  .meta { font-size: 14px; color: #8d6e63; margin-top: 2px; }
+  .meta-col { text-align: right; }
+  .status-line { display: flex; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+  .status-tag { display: inline-block; font-size: 13px; font-weight: 700; padding: 3px 10px; border-radius: 20px; color: #fff; }
+  .tag-called { background: #2e7d32; }
+  .tag-skipped { background: #9e9e9e; }
+  .tag-waiting { background: #d35400; }
+  .item-actions { display: flex; gap: 8px; margin-top: 10px; }
+  .btn-sm { flex: 1; min-height: 46px; padding: 10px 6px; font-size: 15px; font-weight: 700; border-radius: 10px; border: 1px solid #e0c4ae; background: #fff; color: #d35400; cursor: pointer; }
+  .btn-sm.primary { background: #d35400; color: #fff; border-color: #d35400; }
+  .btn-sm.gray { background: #fff; color: #616161; border-color: #d7ccc8; }
+  .btn-sm.green { background: #2e7d32; color: #fff; border-color: #2e7d32; font-size: 16px; }
+  .btn-sm.disabled { background: #efebe8; color: #b9ada6; border-color: #e3dcd7; cursor: not-allowed; }
+  .btn-sm:active { opacity: .75; }
+  .empty { text-align: center; color: #8d6e63; padding: 16px 0; font-size: 15px; }
+  .divider { height: 1px; background: #f3e2d3; margin: 16px 0 14px; }
+
+  /* 點餐 */
+  .empty-box { background: #fff4e5; border: 1px solid #ffcc80; border-radius: 12px; padding: 18px 14px; color: #e65100; font-size: 17px; font-weight: 800; text-align: center; }
+  .order-tables { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+  .otable { flex: 1 1 44%; min-width: 132px; padding: 12px 10px; border-radius: 12px; border: 2px solid #e0c4ae; background: #fffaf6; color: #4e342e; font-size: 16px; font-weight: 800; cursor: pointer; font-family: inherit; }
+  .otable .ot-pending { display: inline-block; background: #2e7d32; color: #fff; font-size: 11px; font-weight: 800; border-radius: 20px; padding: 0 7px; margin-left: 4px; vertical-align: middle; }
+  .otable.active { border-color: #d35400; background: #fff4ec; color: #d35400; }
+  .otable:active { background: #fde9dc; }
+
+  /* 待送單 */
+  .draft-box { background: #f5faf5; border: 1px solid #c8e6c9; border-radius: 12px; padding: 12px; margin: 4px 0 14px; }
+  .draft-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+  .draft-head h3 { font-size: 16px; color: #2e7d32; }
+  .draft-head span { font-size: 13px; font-weight: 700; color: #6d4c41; }
+  .draft-list { list-style: none; }
+  .draft-item { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px dashed #c8e6c9; }
+  .draft-item:last-child { border-bottom: none; }
+  .di-name { flex: 1; font-size: 16px; font-weight: 700; min-width: 0; }
+  .di-sub { display: block; font-size: 12px; font-weight: 600; color: #8d6e63; }
+  .di-qty { display: flex; align-items: center; gap: 6px; }
+  .draft-item .qty-btn { width: 34px; height: 34px; font-size: 18px; border-radius: 8px; border: 1px solid #c8e6c9; background: #fff; color: #2e7d32; font-weight: 800; cursor: pointer; font-family: inherit; }
+  .di-qty .qty-num { min-width: 26px; text-align: center; font-size: 17px; font-weight: 800; }
+  .di-amount { font-size: 16px; font-weight: 800; color: #d35400; min-width: 58px; text-align: right; }
+  .draft-sum { display: flex; justify-content: space-between; align-items: baseline; border-top: 1px solid #c8e6c9; margin-top: 6px; padding-top: 8px; font-size: 15px; font-weight: 700; color: #6d4c41; }
+  .draft-sum b { font-size: 20px; color: #d35400; }
+
+  /* 快捷備註 */
+  .quick-notes { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .qnote { padding: 8px 13px; border-radius: 20px; border: 1px solid #e0c4ae; background: #fffaf6; color: #6d4c41; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; }
+  .qnote.on { background: #d35400; border-color: #d35400; color: #fff; }
+
+  /* 菜單大按鈕 */
+  .menu-cat { font-size: 17px; color: #d35400; margin: 16px 0 8px; border-left: 5px solid #d35400; padding-left: 9px; }
+  .menu-row { display: flex; align-items: stretch; gap: 8px; margin-bottom: 8px; }
+  .menu-btn { position: relative; flex: 1; min-width: 0; min-height: 78px; text-align: left; background: #fffaf6; border: 2px solid #f0dcc8; border-radius: 14px; padding: 12px 14px; cursor: pointer; font-family: inherit; }
+  .menu-btn:active { background: #fde9dc; border-color: #d35400; }
+  .mb-name { display: block; font-size: 19px; font-weight: 800; color: #4e342e; }
+  .mb-price { display: block; position: absolute; right: 14px; top: 11px; font-size: 18px; font-weight: 800; color: #d35400; }
+  .mb-allergy { display: block; margin-top: 8px; font-size: 13px; font-weight: 800; color: #c62828; padding-right: 2px; }
+  .alg-item { white-space: nowrap; }
+  .mb-allergy.none { color: #9c8f88; font-weight: 600; }
+  .menu-step { display: flex; align-items: center; gap: 3px; }
+  .menu-step .qty-btn { width: 34px; height: 46px; border-radius: 10px; border: 2px solid #e0c4ae; background: #fff; color: #d35400; font-size: 19px; font-weight: 800; cursor: pointer; font-family: inherit; }
+  .menu-step .qty-btn:active { background: #fde9dc; }
+  .menu-step .qty-num { min-width: 28px; text-align: center; font-size: 17px; font-weight: 800; color: #4e342e; }
+
+  /* 橫向排版（左圖 96×80・右資訊） */
+  .menu-row.h { align-items: stretch; }
+  .menu-btn.h { display: flex; align-items: stretch; gap: 10px; padding: 10px 8px; min-height: 80px; }
+  .menu-thumb { flex: none; width: 96px; height: 80px; border-radius: 10px; overflow: hidden; border: 1px solid #f0dcc8; background: #fff6ea; }
+  .menu-thumb svg { display: block; width: 100%; height: 100%; }
+  .menu-h-info { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 3px; }
+  .menu-h-top { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 6px; }
+  .menu-btn.h .mb-price { position: static; font-size: 17px; white-space: nowrap; margin-left: auto; }
+  .menu-btn.h .mb-allergy { margin-top: 0; font-size: 12px; }
+  .menu-btn.h .mb-soldout { align-self: flex-start; margin-top: 3px; }
+  .menu-row.h .menu-step { flex: none; width: 90px; justify-content: space-between; gap: 3px; }
+  .menu-row.h .menu-step .qty-btn { width: 29px; height: 44px; font-size: 17px; border-radius: 9px; }
+  .menu-row.h .menu-step .qty-num { min-width: 24px; font-size: 15px; }
+  @media (max-width: 400px) {
+    .menu-btn.h .mb-name { font-size: 18px; }
+    .menu-btn.h .mb-price { font-size: 16px; }
+  }
+
+  /* 本桌已送單 */
+  .sent-box { background: #f5f8fd; border: 1px solid #bbdefb; border-radius: 12px; padding: 12px; margin: 4px 0 14px; }
+  .sent-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+  .sent-head h3 { font-size: 16px; color: #1565c0; }
+  .sent-head span { font-size: 13px; font-weight: 700; color: #6d4c41; }
+  .so { background: #fff; border: 1px solid #e3eefb; border-radius: 9px; padding: 8px 9px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+  .so-top { display: flex; align-items: center; gap: 6px; }
+  .so-id { background: #1565c0; color: #fff; font-size: 11px; font-weight: 800; border-radius: 5px; padding: 1px 6px; }
+  .so-tag { font-size: 11px; font-weight: 800; border-radius: 20px; padding: 1px 8px; color: #fff; }
+  .so-tag.new { background: #d35400; }
+  .so-tag.cooking { background: #f9a825; }
+  .so-tag.done { background: #2e7d32; }
+  .so-items { flex: 1; font-size: 13px; color: #6d4c41; min-width: 0; }
+  .so-amt { font-size: 14px; font-weight: 800; color: #1565c0; white-space: nowrap; }
+  .sent-sum { display: flex; justify-content: space-between; align-items: baseline; border-top: 1px solid #d6e7fa; margin-top: 6px; padding-top: 8px; font-size: 14px; font-weight: 700; color: #6d4c41; }
+  .sent-sum b { font-size: 19px; color: #1565c0; }
+  .checkout-btn { width: 100%; margin-top: 10px; min-height: 46px; padding: 12px; font-size: 17px; font-weight: 800; border-radius: 10px; border: none; background: #2e7d32; color: #fff; cursor: pointer; font-family: inherit; }
+  .checkout-btn:disabled { background: #d7ccc8; color: #fff; }
+  .sent-hint { font-size: 12px; font-weight: 700; color: #b0651a; margin-top: 6px; text-align: center; }
+  .daily-stat { background: #e8f5e9; border: 1px solid #a5d6a7; border-radius: 10px; padding: 9px 12px; font-size: 14px; font-weight: 800; color: #1b5e20; margin-bottom: 10px; }
+  .daily-stat b { font-size: 17px; }
+
+  /* 售完設定 */
+  .so-cat { font-size: 13px; font-weight: 800; color: #8d6e63; margin: 10px 0 5px; }
+  .so-items { display: flex; flex-wrap: wrap; gap: 6px; }
+  .so-toggle { display: flex; align-items: center; gap: 6px; padding: 8px 10px; border-radius: 9px; border: 1px solid #e0c4ae; background: #fffaf6; color: #4e342e; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; }
+  .so-toggle .so-t-price { font-size: 12px; color: #8d6e63; font-weight: 700; }
+  .so-toggle .so-t-state { font-size: 11px; font-weight: 800; border-radius: 20px; padding: 1px 8px; background: #e8f5e9; color: #2e7d32; }
+  .so-toggle.sold { background: #ffebee; border-color: #ef9a9a; color: #b71c1c; }
+  .so-toggle.sold .so-t-price { color: #d32f2f; }
+  .so-toggle.sold .so-t-state { background: #d32f2f; color: #fff; }
+  .so-toggle:active { opacity: .8; }
+  .mb-soldout { display: inline-block; margin-top: 6px; background: #9e9e9e; color: #fff; font-size: 12px; font-weight: 800; border-radius: 20px; padding: 2px 10px; }
+  .menu-btn.soldout { background: #f4f2f1; border-color: #d7ccc8; opacity: .85; }
+  .menu-btn.soldout .mb-name { color: #9c8f88; text-decoration: line-through; }
+  .menu-btn.soldout .mb-price { color: #b9ada6; }
+  .menu-btn.soldout:disabled { cursor: not-allowed; }
+  .di-sold { display: inline-block; background: #d32f2f; color: #fff; font-size: 11px; font-weight: 800; border-radius: 20px; padding: 0 7px; margin-left: 6px; vertical-align: middle; }
+  .warn-peanut { background: #d32f2f; color: #fff; border-radius: 9px; padding: 9px 12px; font-size: 15px; font-weight: 800; text-align: center; margin: 8px 0; line-height: 1.4; }
+  .warn-peanut.compact { font-size: 12.5px; padding: 7px 10px; margin: 0 0 8px; line-height: 1.35; }
+  .warn-icon { margin-right: 4px; }
+
+  /* 已送單提示 */
+  .sent-banner { background: #e8f5e9; border: 1px solid #66bb6a; border-radius: 12px; padding: 12px 14px; color: #1b5e20; font-size: 16px; font-weight: 800; text-align: center; margin-bottom: 12px; }
+  .sent-banner b { font-size: 18px; }
+  .sent-banner.flash { animation: sentPop .35s ease; }
+  @keyframes sentPop { 0% { transform: scale(.92); opacity: 0; } 60% { transform: scale(1.03); } 100% { transform: scale(1); opacity: 1; } }
+
+  .order-foot { position: fixed; left: 0; right: 0; bottom: 0; max-width: 480px; margin: 0 auto; background: #fff; border-top: 1px solid #f3e2d3; padding: 10px 16px calc(12px + env(safe-area-inset-bottom)); box-shadow: 0 -4px 12px rgba(0,0,0,.08); z-index: 30; }
+  #panel-order .card { padding-bottom: 116px; }
+  .order-total-line { display: flex; justify-content: space-between; align-items: center; font-size: 15px; font-weight: 700; color: #6d4c41; }
+  .order-total-line b { font-size: 22px; color: #d35400; }
+
+  /* 廚房看板 */
+  .kitchen-board { display: grid; grid-template-columns: repeat(3, minmax(132px, 1fr)); gap: 8px; overflow-x: auto; padding-bottom: 4px; -webkit-overflow-scrolling: touch; }
+  .k-col { background: #faf7f5; border-radius: 12px; padding: 8px; border: 1px solid #f0e5dd; min-width: 0; }
+  .k-col-head { display: flex; align-items: center; justify-content: space-between; font-size: 14px; font-weight: 800; padding: 4px 6px 8px; color: #6d4c41; }
+  .k-col.new .k-col-head { color: #d35400; }
+  .k-col.cooking .k-col-head { color: #b8860b; }
+  .k-col.done .k-col-head { color: #757575; }
+  .k-count { background: #efebe8; color: #6d4c41; border-radius: 10px; font-size: 12px; font-weight: 800; padding: 0 7px; }
+  .k-card { background: #fff; border-radius: 10px; padding: 9px; margin-bottom: 8px; border: 1px solid #f0e5dd; border-top: 3px solid #d35400; }
+  .k-card.cooking { border-top-color: #f9a825; }
+  .k-card.done { border-top-color: #9e9e9e; opacity: .72; }
+  .k-card-top { display: flex; align-items: center; gap: 6px; }
+  .k-order-id { background: #4e342e; color: #fff; font-size: 11px; font-weight: 800; border-radius: 5px; padding: 1px 6px; }
+  .k-table { font-size: 14px; font-weight: 800; color: #4e342e; }
+  .k-guest { font-size: 11px; font-weight: 700; color: #8d6e63; margin-top: 2px; }
+  .k-items { list-style: none; margin-top: 6px; }
+  .k-items li { display: flex; justify-content: space-between; gap: 4px; font-size: 13px; padding: 2px 0; border-bottom: 1px dashed #f2eae4; }
+  .k-items li:last-child { border-bottom: none; }
+  .k-items li b { color: #d35400; font-weight: 800; white-space: nowrap; }
+  .k-time { font-size: 11px; color: #8d6e63; margin-top: 6px; font-weight: 700; }
+  .k-total { font-size: 13px; font-weight: 800; color: #d35400; margin-top: 3px; }
+  .k-note-allergy { margin-top: 6px; background: #d32f2f; color: #fff; border-radius: 7px; padding: 6px 7px; font-size: 12px; font-weight: 800; line-height: 1.35; }
+  .k-note-other { margin-top: 6px; background: #fff3cd; color: #7a5b00; border: 1px solid #ffe08a; border-radius: 7px; padding: 6px 7px; font-size: 12px; font-weight: 700; line-height: 1.35; }
+  .k-actions { margin-top: 8px; }
+  .k-btn { width: 100%; padding: 9px 4px; border-radius: 8px; border: none; font-size: 13px; font-weight: 800; cursor: pointer; font-family: inherit; }
+  .k-btn.cook { background: #d35400; color: #fff; }
+  .k-btn.done { background: #2e7d32; color: #fff; }
+  .k-btn:active { opacity: .8; }
+  .k-empty { text-align: center; color: #b9ada6; font-size: 12px; padding: 14px 0; }
+
+  /* 入座選單 */
+  .modal { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .modal-mask { position: absolute; inset: 0; background: rgba(62, 39, 32, .55); }
+  .modal-box { position: relative; width: 100%; max-width: 420px; max-height: 85vh; overflow-y: auto; background: #fff; border-radius: 16px; padding: 20px 16px; box-shadow: 0 8px 30px rgba(0,0,0,.25); }
+  .modal-box h3 { font-size: 19px; color: #6d4c41; margin-bottom: 4px; }
+  .seat-options { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 12px 0; }
+  .seat-option { padding: 14px 8px; border-radius: 12px; border: 2px solid #d35400; background: #fff8f2; color: #d35400; font-size: 16px; font-weight: 800; cursor: pointer; }
+  .seat-option span { display: block; font-size: 12px; font-weight: 700; color: #8d6e63; margin-top: 2px; }
+  .seat-option:active { background: #fde9dc; }
+  .seat-empty { background: #fff4e5; border: 1px solid #ffcc80; border-radius: 10px; padding: 12px; color: #e65100; font-size: 15px; font-weight: 700; text-align: center; margin: 12px 0; }
+
+  @media (max-width: 480px) {
+    .container { padding: 12px 10px 32px; }
+    header h1 { font-size: 24px; }
+    .tab { font-size: 14px; }
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <button type="button" class="reset-btn" id="resetBtn">🔄 重新整理</button>
+      <div class="logo">🍜</div>
+      <h1>佑哥食堂</h1>
+      <p>台式小吃店 · 候位・點餐・廚房</p>
+    </header>
+
+    <nav class="tabs">
+      <button type="button" class="tab active" data-tab="waiting">候位 <span class="badge" id="badgeWaiting">0</span></button>
+      <button type="button" class="tab" data-tab="order">點餐 <span class="badge" id="badgeOrder">0</span></button>
+      <button type="button" class="tab" data-tab="kitchen">廚房 <span class="badge" id="badgeKitchen">0</span></button>
+    </nav>
+    <p class="tab-summary" id="tabSummary">候位 0 組・用餐 0 桌・廚房未完成 0 單</p>
+
+    <!-- ================= 候位 ================= -->
+    <section class="panel active" id="panel-waiting">
+      <div class="card">
+        <h2>📟 店員取號</h2>
+        <form id="takeTicketForm" novalidate>
+          <label for="nameInput">客人姓名</label>
+          <input id="nameInput" type="text" placeholder="請輸入客人姓名" autocomplete="off">
+          <label>用餐人數（最多 4 人）</label>
+          <div class="stepper">
+            <button type="button" id="decBtn" aria-label="減少人數">−</button>
+            <span id="partySize">1</span>
+            <button type="button" id="incBtn" aria-label="增加人數">＋</button>
+          </div>
+          <button type="submit" class="btn-primary">取號</button>
+          <div class="error-msg" id="errorMsg">請填客人姓名</div>
+        </form>
+        <div class="ticket-box" id="ticketBox" hidden>
+          <p>取號成功！</p>
+          <div id="ticketNumber">A004</div>
+          <p>請留意叫號</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>🍽️ 桌位管理</h2>
+        <p class="hint" id="tableSummary">空桌 0 桌／共 0 桌</p>
+        <div class="table-grid" id="tableGrid"></div>
+      </div>
+
+      <div class="card">
+        <h2>📋 等候名單</h2>
+        <p class="hint" id="listHint">目前等候 0 組・已叫號 0 組</p>
+        <ul id="waitingList" class="waiting-list"></ul>
+        <div class="divider"></div>
+        <h2>⏰ 已過號</h2>
+        <p class="hint" id="skipHint">目前沒有已過號的客人</p>
+        <ul id="skippedList" class="waiting-list"></ul>
+      </div>
+    </section>
+
+    <!-- ================= 點餐 ================= -->
+    <section class="panel" id="panel-order">
+      <div class="card">
+        <h2>🧾 點餐</h2>
+        <div class="sent-banner" id="sentBanner" hidden></div>
+        <div id="orderEmpty" hidden>
+          <div class="empty-box">請先到候位頁帶客人入座</div>
+          <button type="button" class="btn-primary" id="goWaiting">前往候位頁</button>
+        </div>
+        <div id="orderBody">
+          <div class="daily-stat" id="dailyStat">今日已結帳 <b>NT$ 0</b>・0 桌</div>
+          <p class="hint">用餐中的桌位（點一下即可選桌，每桌有獨立待送單）</p>
+          <div class="order-tables" id="orderTables"></div>
+
+          <div class="sent-box">
+            <div class="sent-head">
+              <h3>🧾 本桌已送單</h3>
+              <span id="sentTableLabel">尚未選桌</span>
+            </div>
+            <div id="sentOrders"></div>
+            <div class="sent-sum">
+              <span>本桌總額 <b id="sentTotal">NT$ 0</b></span>
+              <span>進度 <span id="sentProgress">0/0 單完成</span></span>
+            </div>
+            <button type="button" class="checkout-btn" id="checkoutBtn" disabled>結帳</button>
+            <div class="sent-hint" id="checkoutHint">本桌尚無已送出的訂單</div>
+          </div>
+
+          <div class="draft-box">
+            <div class="draft-head">
+              <h3>🧺 待送單</h3>
+              <span id="draftTableLabel">尚未選桌</span>
+            </div>
+            <ul class="draft-list" id="draftList"></ul>
+            <div class="warn-peanut" id="peanutWarn" hidden><span class="warn-icon">⚠</span>這張單有含花生的餐點，但備註寫了花生過敏。請先跟客人確認。</div>
+            <div class="draft-sum">
+              <span>小計・<span id="draftCount">0</span> 項</span>
+              <b id="draftSubtotal">NT$ 0</b>
+            </div>
+          </div>
+
+          <label for="allergyNote">備註（會傳給廚房）</label>
+          <input id="allergyNote" type="text" placeholder="例：花生過敏、忌辣" autocomplete="off">
+          <div class="quick-notes" id="quickNotes"></div>
+
+          <div id="menuBox"></div>
+
+          <div class="order-foot">
+            <div class="warn-peanut compact" id="peanutWarnBar" hidden><span class="warn-icon">⚠</span>這張單有含花生的餐點，但備註寫了花生過敏。請先跟客人確認。</div>
+            <div class="order-total-line">
+              <span>小計 <b id="orderTotal">NT$ 0</b>・<span id="orderCount">0</span> 項</span>
+            </div>
+            <button type="button" class="btn-primary" id="submitOrder">送單到廚房</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= 廚房 ================= -->
+    <section class="panel" id="panel-kitchen">
+      <div class="card">
+        <h2>👨‍🍳 廚房</h2>
+        <p class="hint" id="kitchenHint">尚未完成 0 單</p>
+        <div class="kitchen-board" id="kitchenBoard"></div>
+        <button type="button" class="btn-sm gray" id="clearDone" style="width:100%;margin-top:8px;">清除已完成訂單</button>
+        <div class="divider"></div>
+        <h2>🍽️ 今日售完設定</h2>
+        <p class="hint">點一下餐點切換「有貨／售完」，售完品項在點餐頁會停用</p>
+        <div id="soldoutList"></div>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal" id="resetModal" hidden>
+    <div class="modal-mask" id="resetMask"></div>
+    <div class="modal-box">
+      <h3>🔄 重新整理</h3>
+      <p class="hint">確定要清空所有候位與訂單資料嗎？</p>
+      <div class="reset-desc">將重設為開店狀態：候位名單、已過號、廚房訂單、待送單、今日售完設定、今日已結帳金額全部歸零。此操作無法復原。</div>
+      <div class="reset-actions">
+        <button type="button" class="btn-sm gray" id="resetCancel">取消</button>
+        <button type="button" class="btn-sm green" id="resetConfirm">確定清空</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="seatModal" hidden>
+    <div class="modal-mask" id="seatMask"></div>
+    <div class="modal-box">
+      <h3>安排入座</h3>
+      <p class="hint" id="seatInfo"></p>
+      <div class="seat-options" id="seatOptions"></div>
+      <p class="seat-empty" id="seatEmpty" hidden>目前沒有坐得下的空桌，請稍候再安排。</p>
+      <button type="button" class="btn-primary" id="seatCancel">取消</button>
+    </div>
+  </div>
+
+<script>
+const STORAGE_KEY = 'yoke_waiting_list_v4';
+
+/* 桌位配置（沿用店家資料卡：一桌最多 4 人） */
+const TABLE_LAYOUT = [
+  { id: 'T1', label: '1 號桌', capacity: 4 },
+  { id: 'T2', label: '2 號桌', capacity: 4 },
+  { id: 'T3', label: '3 號桌', capacity: 2 },
+  { id: 'T4', label: '4 號桌', capacity: 2 },
+  { id: 'T5', label: '5 號桌', capacity: 4 },
+  { id: 'T6', label: '吧台位', capacity: 1 }
+];
+
+/* 菜單（依店家資料卡分類／價格，過敏原為店家標示） */
+const MENU = [
+  { id: 'M1', cat: '主食', name: '滷肉飯', price: 45,  allergens: ['麩質', '大豆', '豬肉'] },
+  { id: 'M2', cat: '主食', name: '雞絲麵', price: 70,  allergens: ['麩質', '大豆', '雞肉'] },
+  { id: 'M3', cat: '主食', name: '排骨飯', price: 120, allergens: ['麩質', '大豆', '豬肉'] },
+  { id: 'M4', cat: '小菜', name: '燙青菜',   price: 40,  allergens: ['麩質', '大豆'] },
+  { id: 'M5', cat: '小菜', name: '滷蛋',     price: 15,  allergens: ['蛋', '麩質', '大豆'] },
+  { id: 'M6', cat: '小菜', name: '花生小魚乾', price: 50, allergens: ['花生', '魚類', '麩質', '大豆'] },
+  { id: 'M7', cat: '飲品', name: '冬瓜茶',   price: 30,  allergens: [] },
+  { id: 'M8', cat: '飲品', name: '鮮奶紅茶', price: 50,  allergens: ['乳製品', '麩質'] }
+];
+
+/* 快捷備註 */
+const QUICK_NOTES = ['花生過敏', '不要香菜', '少鹽', '飯少一點'];
+
+/* 餐點圖片（內嵌 SVG，不需外部檔案） */
+const MENU_IMG = {
+  M1: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 80" preserveAspectRatio="xMidYMid slice">
+    <rect width="96" height="80" fill="#fdf1e3"/>
+    <circle cx="48" cy="43" r="31" fill="#fbe8d3" opacity=".7"/>
+    <path d="M20 42 q28 -23 56 0 z" fill="#fffdf6" stroke="#eadcc3" stroke-width="1.5"/>
+    <g stroke="#8f4526" stroke-width="1">
+      <ellipse cx="35" cy="31" rx="11" ry="6" fill="#b15a31"/>
+      <ellipse cx="59" cy="30" rx="11" ry="6" fill="#c2693c"/>
+      <ellipse cx="47" cy="21" rx="11" ry="6" fill="#a24e29"/>
+    </g>
+    <g fill="#5f9b41">
+      <circle cx="34" cy="34" r="1.7"/><circle cx="52" cy="36" r="1.5"/>
+      <circle cx="63" cy="33" r="1.4"/><circle cx="44" cy="27" r="1.3"/>
+    </g>
+    <path d="M16 41 h64 a32 20 0 0 1 -64 0 z" fill="#ffffff" stroke="#e3cdb4" stroke-width="2"/>
+    <path d="M13 41 h70" stroke="#d8bda0" stroke-width="3.5" stroke-linecap="round"/>
+  </svg>`
+};
+
+function formatTicket(n) { return 'A' + String(n).padStart(3, '0'); }
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+  });
+}
+function mins(from) { return Math.max(0, Math.round((Date.now() - from) / 60000)); }
+function nt(n) { return 'NT$ ' + n; }
+function dateStr(ts) {
+  const d = new Date(ts);
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function todayCheckouts(data) {
+  const t = dateStr(Date.now());
+  return (data.checkouts || []).filter(function (c) { return c.date === t; });
+}
+
+/* ---------- 資料 ---------- */
+function seedData() {
+  const now = Date.now();
+  return {
+    nextNumber: 4,
+    nextSeq: 4,
+    nextOrderNo: 3,
+    entries: [
+      { ticket: 'A001', seq: 1, name: '王大明', partySize: 2, createdAt: now - 6 * 60000, status: 'waiting', calledAt: null, skippedAt: null },
+      { ticket: 'A002', seq: 2, name: '陳小華', partySize: 3, createdAt: now - 3 * 60000, status: 'waiting', calledAt: null, skippedAt: null },
+      { ticket: 'A003', seq: 3, name: '張阿婆', partySize: 1, createdAt: now - 5 * 60000, status: 'called', calledAt: now - 2 * 60000, skippedAt: null }
+    ],
+    tables: TABLE_LAYOUT.map(function (t) { return { id: t.id, label: t.label, capacity: t.capacity, guest: null }; }),
+    drafts: {},
+    soldOut: [],
+    checkouts: [],
+    /* 2 張範例出餐單（K001 備註花生過敏） */
+    orders: [
+      {
+        id: 'K001', tableId: 'T1', tableLabel: '1 號桌', guestName: '陳小華', guestSize: 3,
+        items: [
+          { menuId: 'M1', name: '滷肉飯', qty: 2, price: 45, allergens: ['麩質', '大豆', '豬肉'] },
+          { menuId: 'M5', name: '滷蛋', qty: 1, price: 15, allergens: ['蛋', '麩質', '大豆'] }
+        ],
+        total: 105, note: '花生過敏', createdAt: now - 4 * 60000, status: 'new'
+      },
+      {
+        id: 'K002', tableId: 'T3', tableLabel: '3 號桌', guestName: '王大明', guestSize: 2,
+        items: [
+          { menuId: 'M3', name: '排骨飯', qty: 1, price: 120, allergens: ['麩質', '大豆', '豬肉'] },
+          { menuId: 'M4', name: '燙青菜', qty: 1, price: 40, allergens: ['麩質', '大豆'] },
+          { menuId: 'M7', name: '冬瓜茶', qty: 2, price: 30, allergens: [] }
+        ],
+        total: 220, note: '少鹽、不要香菜', createdAt: now - 1 * 60000, status: 'new'
+      }
+    ]
+  };
+}
+
+function normalizeTables(stored) {
+  const map = {};
+  (stored || []).forEach(function (t) { map[t.id] = t; });
+  return TABLE_LAYOUT.map(function (t) {
+    const s = map[t.id];
+    return { id: t.id, label: t.label, capacity: t.capacity, guest: (s && s.guest) ? s.guest : null };
+  });
+}
+
+function normalizeDrafts(stored) {
+  const out = {};
+  if (!stored || typeof stored !== 'object') return out;
+  Object.keys(stored).forEach(function (k) {
+    const d = stored[k];
+    if (!d) return;
+    const items = (Array.isArray(d.items) ? d.items : []).map(function (i) {
+      return { menuId: i.menuId, name: i.name, price: i.price, qty: i.qty, allergens: i.allergens || [] };
+    }).filter(function (i) { return i.qty > 0; });
+    if (items.length || d.note) out[k] = { items: items, note: d.note || '' };
+  });
+  return out;
+}
+
+function normalize(d) {
+  const raw = (d && Array.isArray(d.entries)) ? d.entries : [];
+  const entries = raw.map(function (e, i) {
+    return {
+      ticket: e.ticket,
+      seq: (typeof e.seq === 'number') ? e.seq : i + 1,
+      name: e.name,
+      partySize: e.partySize,
+      createdAt: e.createdAt || Date.now(),
+      status: e.status || 'waiting',
+      calledAt: e.calledAt || null,
+      skippedAt: e.skippedAt || null
+    };
+  });
+  const orders = (d && Array.isArray(d.orders)) ? d.orders : [];
+  const checkouts = (d && Array.isArray(d.checkouts)) ? d.checkouts : [];
+  return {
+    nextNumber: (d && typeof d.nextNumber === 'number') ? d.nextNumber : entries.length + 1,
+    nextSeq: (d && typeof d.nextSeq === 'number') ? d.nextSeq : entries.length + 1,
+    nextOrderNo: (d && typeof d.nextOrderNo === 'number') ? d.nextOrderNo : orders.length + 1,
+    entries: entries,
+    tables: normalizeTables(d && d.tables),
+    drafts: normalizeDrafts(d && d.drafts),
+    orders: orders,
+    soldOut: (d && Array.isArray(d.soldOut)) ? d.soldOut : [],
+    checkouts: checkouts
+  };
+}
+
+/* 是否售完 */
+function isSoldOut(data, menuId) {
+  return ((data && data.soldOut) || []).indexOf(menuId) >= 0;
+}
+
+function loadData() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (raw) {
+    try { return normalize(JSON.parse(raw)); } catch (e) {}
+  }
+  const seed = seedData();
+  saveData(seed);
+  return seed;
+}
+
+function saveData(data) { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+
+/* ---------- 分頁 ---------- */
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(function (t) {
+    t.classList.toggle('active', t.getAttribute('data-tab') === name);
+  });
+  document.querySelectorAll('.panel').forEach(function (p) {
+    p.classList.toggle('active', p.id === 'panel-' + name);
+  });
+  window.scrollTo(0, 0);
+}
+document.querySelectorAll('.tab').forEach(function (t) {
+  t.addEventListener('click', function () { switchTab(t.getAttribute('data-tab')); });
+});
+
+/* ---------- 桌位 ---------- */
+function renderTables(data) {
+  const grid = document.getElementById('tableGrid');
+  const free = data.tables.filter(function (t) { return !t.guest; }).length;
+  document.getElementById('tableSummary').textContent =
+    '空桌 ' + free + ' 桌／共 ' + data.tables.length + ' 桌';
+  grid.innerHTML = data.tables.map(function (t) {
+    const occupied = !!t.guest;
+    const draft = data.drafts[t.id];
+    const pend = draft && draft.items.length ? draft.items.reduce(function (s, i) { return s + i.qty; }, 0) : 0;
+    return '<div class="table-card ' + (occupied ? 'occupied' : 'free') + '">' +
+      '<div class="table-no">' + esc(t.label) + '</div>' +
+      '<div class="table-cap">' + t.capacity + ' 人座</div>' +
+      '<div class="table-status ' + (occupied ? 'on' : 'off') + '">' + (occupied ? '用餐中' : '空桌') + '</div>' +
+      (occupied
+        ? '<div class="table-guest">' + esc(t.guest.name) + '・' + t.guest.partySize + ' 人</div>' +
+          (pend ? '<div class="table-guest">待送 ' + pend + ' 項</div>' : '') +
+          '<button type="button" class="btn-tiny" data-act="clear" data-table="' + esc(t.id) + '">翻桌</button>'
+        : '<div class="table-guest">可安排入座</div>') +
+      '</div>';
+  }).join('');
+}
+
+/* ---------- 候位名單 ---------- */
+function groupEntries(data) {
+  return {
+    called: data.entries.filter(function (e) { return e.status === 'called'; })
+      .sort(function (a, b) { return (b.calledAt || 0) - (a.calledAt || 0); }),
+    waiting: data.entries.filter(function (e) { return e.status === 'waiting'; })
+      .sort(function (a, b) { return a.seq - b.seq; }),
+    skipped: data.entries.filter(function (e) { return e.status === 'skipped'; })
+      .sort(function (a, b) { return (b.skippedAt || 0) - (a.skippedAt || 0); })
+  };
+}
+
+function activeItemHtml(e, ahead) {
+  const called = e.status === 'called';
+  const tag = called
+    ? '<span class="status-tag tag-called">已叫號</span><span class="meta">叫號後已過 ' + mins(e.calledAt) + ' 分鐘</span>'
+    : '<span class="status-tag tag-waiting">等候中</span><span class="meta">前面還有 ' + ahead + ' 組</span>';
+  const seatBtn = called
+    ? '<div class="item-actions"><button type="button" class="btn-sm green" data-act="seat" data-id="' + esc(e.ticket) + '">入座</button></div>'
+    : '<div class="item-actions"><button type="button" class="btn-sm disabled" disabled>入座（需先叫號）</button></div>';
+  return '' +
+    '<li class="waiting-item ' + (called ? 'called' : '') + '">' +
+      '<div class="item-head">' +
+        '<div class="ticket-badge">' + esc(e.ticket) + '</div>' +
+        '<div class="info"><div class="name">' + esc(e.name) + '</div>' +
+        '<div class="meta">人數：' + e.partySize + ' 人</div></div>' +
+        '<div class="meta-col"><div class="meta">已等 ' + mins(e.createdAt) + ' 分鐘</div>' +
+        (called ? '' : '<div class="meta">前面還有 ' + ahead + ' 組</div>') + '</div>' +
+      '</div>' +
+      '<div class="status-line">' + tag + '</div>' +
+      seatBtn +
+      '<div class="item-actions">' +
+        '<button type="button" class="btn-sm primary" data-act="call" data-id="' + esc(e.ticket) + '">叫號</button>' +
+        '<button type="button" class="btn-sm gray" data-act="skip" data-id="' + esc(e.ticket) + '">過號</button>' +
+      '</div>' +
+    '</li>';
+}
+
+function skippedItemHtml(e) {
+  return '' +
+    '<li class="waiting-item skipped">' +
+      '<div class="item-head">' +
+        '<div class="ticket-badge">' + esc(e.ticket) + '</div>' +
+        '<div class="info"><div class="name">' + esc(e.name) + '</div>' +
+        '<div class="meta">人數：' + e.partySize + ' 人</div></div>' +
+        '<div class="meta-col"><div class="meta">已等 ' + mins(e.createdAt) + ' 分鐘</div></div>' +
+      '</div>' +
+      '<div class="status-line">' +
+        '<span class="status-tag tag-skipped">已過號</span>' +
+        '<span class="meta">過號後已過 ' + mins(e.skippedAt) + ' 分鐘</span>' +
+      '</div>' +
+      '<div class="item-actions">' +
+        '<button type="button" class="btn-sm green" data-act="back" data-id="' + esc(e.ticket) + '">客人回來了，排到隊伍最後</button>' +
+      '</div>' +
+    '</li>';
+}
+
+function renderList(data) {
+  const g = groupEntries(data);
+  const waitingEl = document.getElementById('waitingList');
+  const skippedEl = document.getElementById('skippedList');
+  const active = g.called.map(function (e) { return activeItemHtml(e, 0); })
+    .concat(g.waiting.map(function (e, i) { return activeItemHtml(e, i); }));
+  waitingEl.innerHTML = active.length ? active.join('') : '<li class="empty">目前沒有等候中的客人</li>';
+  skippedEl.innerHTML = g.skipped.length ? g.skipped.map(skippedItemHtml).join('') : '<li class="empty">目前沒有已過號的客人</li>';
+  document.getElementById('listHint').textContent =
+    '目前等候 ' + g.waiting.length + ' 組・已叫號 ' + g.called.length + ' 組';
+  document.getElementById('skipHint').textContent =
+    g.skipped.length ? ('已過號 ' + g.skipped.length + ' 組，客人回來請按下方按鈕') : '目前沒有已過號的客人';
+}
+
+/* ---------- 點餐：每桌獨立待送單 ---------- */
+let orderState = { tableId: null };
+
+function getDraft(data, tableId) {
+  if (!tableId) return { items: [], note: '' };
+  if (!data.drafts[tableId]) data.drafts[tableId] = { items: [], note: '' };
+  if (!Array.isArray(data.drafts[tableId].items)) data.drafts[tableId].items = [];
+  if (typeof data.drafts[tableId].note !== 'string') data.drafts[tableId].note = '';
+  return data.drafts[tableId];
+}
+
+function draftTotal(draft) {
+  return draft.items.reduce(function (s, i) { return s + i.qty * i.price; }, 0);
+}
+function draftCount(draft) {
+  return draft.items.reduce(function (s, i) { return s + i.qty; }, 0);
+}
+
+function changeDraft(menuId, delta) {
+  const data = loadData();
+  if (!orderState.tableId) return;
+  const draft = getDraft(data, orderState.tableId);
+  const idx = draft.items.findIndex(function (i) { return i.menuId === menuId; });
+  if (idx >= 0) {
+    draft.items[idx].qty += delta;
+    if (draft.items[idx].qty <= 0) draft.items.splice(idx, 1);   // 歸零就移除
+  } else if (delta > 0) {
+    const m = MENU.find(function (x) { return x.id === menuId; });
+    if (m) draft.items.push({ menuId: m.id, name: m.name, price: m.price, qty: delta, allergens: m.allergens });
+  }
+  saveData(data);
+  renderAll(data);
+}
+
+function buildMenu() {
+  const cats = [];
+  MENU.forEach(function (m) { if (cats.indexOf(m.cat) < 0) cats.push(m.cat); });
+  const html = cats.map(function (cat) {
+    const items = MENU.filter(function (m) { return m.cat === cat; }).map(function (m) {
+      const allergy = '<span class="mb-allergy' + (m.allergens.length ? '' : ' none') + '">' +
+        (m.allergens.length
+          ? '含' + m.allergens.map(function (a) { return '<span class="alg-item">' + esc(a) + '</span>'; }).join('、')
+          : '無過敏原') + '</span>';
+      const step = '<div class="menu-step">' +
+        '<button type="button" class="qty-btn" data-act="sub" data-id="' + m.id + '" aria-label="減少">−</button>' +
+        '<span class="qty-num" id="c-' + m.id + '">0</span>' +
+        '<button type="button" class="qty-btn" data-act="add" data-id="' + m.id + '" aria-label="增加">＋</button>' +
+      '</div>';
+
+      /* 有圖片 → 橫向排版（左圖 96×80・右資訊） */
+      if (MENU_IMG[m.id]) {
+        return '<div class="menu-row h">' +
+          '<button type="button" class="menu-btn h" data-act="add" data-id="' + m.id + '">' +
+            '<span class="menu-thumb">' + MENU_IMG[m.id] + '</span>' +
+            '<span class="menu-h-info">' +
+              '<span class="menu-h-top">' +
+                '<span class="mb-name">' + esc(m.name) + '</span>' +
+                '<span class="mb-price">' + m.price + ' 元</span>' +
+              '</span>' +
+              allergy +
+            '</span>' +
+          '</button>' +
+          step +
+        '</div>';
+      }
+
+      /* 無圖片 → 維持原本垂直排版 */
+      return '<div class="menu-row">' +
+        '<button type="button" class="menu-btn" data-act="add" data-id="' + m.id + '">' +
+          '<span class="mb-name">' + esc(m.name) + '</span>' +
+          '<span class="mb-price">' + m.price + ' 元</span>' +
+          allergy +
+        '</button>' +
+        step +
+      '</div>';
+    }).join('');
+    return '<h3 class="menu-cat">' + esc(cat) + '</h3>' + items;
+  }).join('');
+  document.getElementById('menuBox').innerHTML = html;
+
+  document.getElementById('quickNotes').innerHTML = QUICK_NOTES.map(function (q) {
+    return '<button type="button" class="qnote" data-note="' + esc(q) + '">' + esc(q) + '</button>';
+  }).join('');
+}
+
+function noteParts(note) {
+  return note ? note.split(/[、,，]/).map(function (s) { return s.trim(); }).filter(Boolean) : [];
+}
+
+function toggleQuickNote(phrase) {
+  const data = loadData();
+  if (!orderState.tableId) return;
+  const draft = getDraft(data, orderState.tableId);
+  const parts = noteParts(draft.note);
+  const i = parts.indexOf(phrase);
+  if (i >= 0) parts.splice(i, 1); else parts.push(phrase);
+  draft.note = parts.join('、');
+  saveData(data);
+  renderAll(data);
+}
+
+function updateQuickNoteStates(draft) {
+  const parts = noteParts(draft ? draft.note : '');
+  document.querySelectorAll('.qnote').forEach(function (b) {
+    b.classList.toggle('on', parts.indexOf(b.getAttribute('data-note')) >= 0);
+  });
+}
+
+function renderOrderTab(data) {
+  const dining = data.tables.filter(function (t) { return !!t.guest; });
+  const emptyEl = document.getElementById('orderEmpty');
+  const bodyEl = document.getElementById('orderBody');
+  if (!dining.length) {
+    emptyEl.hidden = false;
+    bodyEl.hidden = true;
+    orderState.tableId = null;
+    return;
+  }
+  emptyEl.hidden = true;
+  bodyEl.hidden = false;
+
+  const ids = dining.map(function (t) { return t.id; });
+  if (ids.indexOf(orderState.tableId) < 0) orderState.tableId = ids[0];
+  const cur = data.tables.find(function (t) { return t.id === orderState.tableId; });
+  const draft = getDraft(data, orderState.tableId);
+
+  /* 桌位按鈕（附各桌待送項數） */
+  document.getElementById('orderTables').innerHTML = dining.map(function (t) {
+    const d = data.drafts[t.id];
+    const pend = d ? draftCount(d) : 0;
+    return '<button type="button" class="otable' + (t.id === orderState.tableId ? ' active' : '') + '" data-table="' + esc(t.id) + '">' +
+      esc(t.label) + '・' + esc(t.guest.name) +
+      (pend ? '<span class="ot-pending">待送 ' + pend + '</span>' : '') + '</button>';
+  }).join('');
+
+  /* 待送單 */
+  document.getElementById('draftTableLabel').textContent = cur ? (cur.label + '・' + cur.guest.name) : '尚未選桌';
+  const listEl = document.getElementById('draftList');
+  if (!draft.items.length) {
+    listEl.innerHTML = '<li class="empty">尚未點餐，請由下方菜單選擇</li>';
+  } else {
+    listEl.innerHTML = draft.items.map(function (i) {
+      const sold = isSoldOut(data, i.menuId);
+      return '<li class="draft-item">' +
+        '<div class="di-name">' + esc(i.name) + (sold ? '<span class="di-sold">售完</span>' : '') +
+        '<span class="di-sub">' + i.price + ' 元 × ' + i.qty + '</span></div>' +
+        '<div class="di-qty">' +
+          '<button type="button" class="qty-btn" data-act="sub" data-id="' + esc(i.menuId) + '">－</button>' +
+          '<span class="qty-num">' + i.qty + '</span>' +
+          '<button type="button" class="qty-btn" data-act="add" data-id="' + esc(i.menuId) + '"' + (sold ? ' disabled' : '') + '>＋</button>' +
+        '</div>' +
+        '<div class="di-amount">' + nt(i.price * i.qty) + '</div>' +
+      '</li>';
+    }).join('');
+  }
+
+  const sub = draftTotal(draft);
+  const cnt = draftCount(draft);
+  document.getElementById('draftSubtotal').textContent = nt(sub);
+  document.getElementById('draftCount').textContent = cnt;
+  document.getElementById('orderTotal').textContent = nt(sub);
+  document.getElementById('orderCount').textContent = cnt;
+  document.getElementById('submitOrder').disabled = draft.items.length === 0;   // 空單停用送單
+
+  /* 備註 */
+  const noteEl = document.getElementById('allergyNote');
+  if (document.activeElement !== noteEl && noteEl.value !== draft.note) noteEl.value = draft.note;
+  updateQuickNoteStates(draft);
+
+  /* 菜單上的數量 */
+  MENU.forEach(function (m) {
+    const q = draft.items.reduce(function (s, i) { return s + (i.menuId === m.id ? i.qty : 0); }, 0);
+    const c = document.getElementById('c-' + m.id);
+    if (c) c.textContent = q;
+  });
+
+  updateMenuSoldOut(data);
+  updatePeanutAlert(data, draft);
+  renderSentBox(data, cur);
+}
+
+/* 備註同時提到「花生」與「過敏」，且待送單有含花生的餐點 → 警示（不阻擋送單） */
+function hasPeanutAlert(data, draft) {
+  if (!draft) return false;
+  const note = draft.note || '';
+  if (note.indexOf('花生') < 0) return false;
+  if (note.indexOf('過敏') < 0) return false;
+  return draft.items.some(function (i) {
+    return (i.allergens || []).indexOf('花生') >= 0;
+  });
+}
+
+function updatePeanutAlert(data, draft) {
+  const show = hasPeanutAlert(data, draft);
+  const w1 = document.getElementById('peanutWarn');
+  const w2 = document.getElementById('peanutWarnBar');
+  if (w1) w1.hidden = !show;
+  if (w2) w2.hidden = !show;
+}
+
+/* 售完品項在點餐頁停用 */
+function updateMenuSoldOut(data) {
+  MENU.forEach(function (m) {
+    const sold = isSoldOut(data, m.id);
+    const btn = document.querySelector('.menu-btn[data-id="' + m.id + '"]');
+    if (btn) {
+      btn.classList.toggle('soldout', sold);
+      btn.disabled = sold;
+      let tag = btn.querySelector('.mb-soldout');
+      if (sold && !tag) {
+        tag = document.createElement('span');
+        tag.className = 'mb-soldout';
+        tag.textContent = '今日售完';
+        (btn.querySelector('.menu-h-info') || btn).appendChild(tag);
+      } else if (!sold && tag) {
+        tag.parentNode.removeChild(tag);
+      }
+    }
+    const plus = document.querySelector('.menu-step .qty-btn[data-act="add"][data-id="' + m.id + '"]');
+    if (plus) plus.disabled = sold;
+    const minus = document.querySelector('.menu-step .qty-btn[data-act="sub"][data-id="' + m.id + '"]');
+    if (minus) minus.disabled = false;
+  });
+}
+
+/* 本桌已送單・進度・總額・結帳 */
+function renderSentBox(data, table) {
+  const orders = table ? data.orders.filter(function (o) { return o.tableId === table.id; }) : [];
+  const doneCount = orders.filter(function (o) { return o.status === 'done'; }).length;
+  const total = orders.reduce(function (s, o) { return s + o.total; }, 0);
+
+  document.getElementById('sentTableLabel').textContent = table ? (table.label + '・' + table.guest.name) : '尚未選桌';
+  const box = document.getElementById('sentOrders');
+  box.innerHTML = orders.length ? orders.map(function (o) {
+    const tag = o.status === 'new' ? '<span class="so-tag new">待製作</span>'
+      : o.status === 'cooking' ? '<span class="so-tag cooking">製作中</span>'
+      : '<span class="so-tag done">已完成</span>';
+    const items = o.items.map(function (i) { return esc(i.name) + '×' + i.qty; }).join('、');
+    return '<div class="so">' +
+      '<div class="so-top"><span class="so-id">' + esc(o.id) + '</span>' + tag + '</div>' +
+      '<div class="so-items">' + items + '</div>' +
+      '<div class="so-amt">' + nt(o.total) + '</div>' +
+    '</div>';
+  }).join('') : '<div class="empty" style="padding:8px 0;font-size:14px;">本桌尚無已送出的訂單</div>';
+
+  document.getElementById('sentTotal').textContent = nt(total);
+  document.getElementById('sentProgress').textContent = doneCount + '/' + orders.length + ' 單完成';
+
+  const btn = document.getElementById('checkoutBtn');
+  const hint = document.getElementById('checkoutHint');
+  if (!orders.length) {
+    btn.disabled = true;
+    hint.textContent = '本桌尚無已送出的訂單';
+  } else if (doneCount < orders.length) {
+    btn.disabled = true;
+    hint.textContent = '餐點尚未全部完成（尚有 ' + (orders.length - doneCount) + ' 單未出餐），無法結帳';
+  } else {
+    btn.disabled = false;
+    hint.textContent = '餐點已全部完成，可結帳（' + nt(total) + '）';
+  }
+
+  /* 今日已結帳累計 */
+  const today = todayCheckouts(data);
+  const todayTotal = today.reduce(function (s, c) { return s + c.amount; }, 0);
+  const ds = document.getElementById('dailyStat');
+  if (ds) ds.innerHTML = '今日已結帳 <b>' + nt(todayTotal) + '</b>・' + today.length + ' 桌';
+}
+document.getElementById('orderTables').addEventListener('click', function (ev) {
+  const btn = ev.target.closest ? ev.target.closest('button[data-table]') : null;
+  if (!btn) return;
+  orderState.tableId = btn.getAttribute('data-table');
+  renderAll(loadData());
+});
+
+document.getElementById('menuBox').addEventListener('click', function (ev) {
+  const btn = ev.target.closest ? ev.target.closest('button[data-act]') : null;
+  if (!btn) return;
+  changeDraft(btn.getAttribute('data-id'), btn.getAttribute('data-act') === 'add' ? 1 : -1);
+});
+
+document.getElementById('draftList').addEventListener('click', function (ev) {
+  const btn = ev.target.closest ? ev.target.closest('button[data-act]') : null;
+  if (!btn) return;
+  changeDraft(btn.getAttribute('data-id'), btn.getAttribute('data-act') === 'add' ? 1 : -1);
+});
+
+document.getElementById('quickNotes').addEventListener('click', function (ev) {
+  const btn = ev.target.closest ? ev.target.closest('button[data-note]') : null;
+  if (!btn) return;
+  toggleQuickNote(btn.getAttribute('data-note'));
+});
+
+document.getElementById('allergyNote').addEventListener('input', function (e) {
+  const data = loadData();
+  if (!orderState.tableId) return;
+  const draft = getDraft(data, orderState.tableId);
+  draft.note = e.target.value;
+  saveData(data);
+  updateQuickNoteStates(draft);
+  updatePeanutAlert(data, draft);
+});
+
+document.getElementById('goWaiting').addEventListener('click', function () { switchTab('waiting'); });
+
+document.getElementById('submitOrder').addEventListener('click', function () {
+  const data = loadData();
+  const table = data.tables.find(function (t) { return t.id === orderState.tableId; });
+  if (!table || !table.guest) { alert('請先到候位頁帶客人入座'); return; }
+  const draft = getDraft(data, orderState.tableId);
+  if (!draft.items.length) { alert('待送單是空的，請先點餐'); return; }
+  /* 待送單含今日售完品項 → 提示先移除 */
+  const soldList = draft.items.filter(function (i) { return isSoldOut(data, i.menuId); });
+  if (soldList.length) {
+    const names = soldList.map(function (i) { return i.name + '×' + i.qty; }).join('、');
+    alert('待送單中有今日售完品項：' + names + '\n請先移除後再送單。');
+    return;
+  }
+  const order = {
+    id: 'K' + String(data.nextOrderNo).padStart(3, '0'),
+    tableId: table.id,
+    tableLabel: table.label,
+    guestName: table.guest.name,
+    guestSize: table.guest.partySize,
+    items: draft.items.map(function (i) {
+      return { menuId: i.menuId, name: i.name, qty: i.qty, price: i.price, allergens: i.allergens };
+    }),
+    total: draftTotal(draft),
+    note: (draft.note || '').trim(),
+    createdAt: Date.now(),
+    status: 'new'
+  };
+  data.nextOrderNo += 1;
+  data.orders.push(order);
+  delete data.drafts[table.id];                 // 清空該桌待送單
+  saveData(data);
+  renderAll(data);
+  showSentBanner(order.id);
+});
+
+/* 已送到廚房／已結帳提示 */
+let bannerTimer = null;
+function showBanner(html) {
+  const b = document.getElementById('sentBanner');
+  b.innerHTML = html;
+  b.hidden = false;
+  b.classList.remove('flash');
+  void b.offsetWidth;
+  b.classList.add('flash');
+  if (bannerTimer) clearTimeout(bannerTimer);
+  bannerTimer = setTimeout(function () { b.hidden = true; }, 5000);
+}
+function showSentBanner(orderId) {
+  showBanner('✓ 訂單 <b>' + esc(orderId) + '</b> 已送到廚房');
+}
+
+/* 結帳 */
+document.getElementById('checkoutBtn').addEventListener('click', function () {
+  const data = loadData();
+  const table = data.tables.find(function (t) { return t.id === orderState.tableId; });
+  if (!table || !table.guest) { alert('目前沒有用餐中的桌位'); return; }
+  const orders = data.orders.filter(function (o) { return o.tableId === table.id; });
+  if (!orders.length) { alert('本桌尚無已送出的訂單'); return; }
+  const unfinished = orders.filter(function (o) { return o.status !== 'done'; });
+  if (unfinished.length) {
+    alert('餐點尚未全部完成（' + unfinished.length + ' 單），請先出餐後再結帳。');
+    return;
+  }
+  const amount = orders.reduce(function (s, o) { return s + o.total; }, 0);
+  const guestName = table.guest.name;
+
+  /* 累計今日已結帳金額 */
+  if (!Array.isArray(data.checkouts)) data.checkouts = [];
+  data.checkouts.push({
+    id: 'C' + String(data.checkouts.length + 1).padStart(3, '0'),
+    tableId: table.id, tableLabel: table.label, guestName: guestName,
+    amount: amount, at: Date.now(), date: dateStr(Date.now())
+  });
+
+  /* 移除看板上的已結帳單 */
+  data.orders = data.orders.filter(function (o) { return o.tableId !== table.id; });
+
+  /* 清空桌況 */
+  table.guest = null;
+  delete data.drafts[table.id];
+
+  saveData(data);
+  renderAll(data);
+  showBanner('✓ <b>' + esc(table.label) + '・' + esc(guestName) + '</b> 已結帳 ' + nt(amount));
+});
+
+/* ---------- 廚房看板 ---------- */
+function timeStr(ts) {
+  const d = new Date(ts);
+  return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+}
+
+/* 備註含有「過敏」→ 紅底；其他備註 → 黃底 */
+function orderAllergyInfo(o) {
+  const note = (o.note || '').trim();
+  const flag = note.indexOf('過敏') >= 0;
+  return { flag: flag, note: note };
+}
+
+function kitchenCardHtml(o) {
+  const info = orderAllergyInfo(o);
+  let noteHtml = '';
+  if (info.flag) {
+    noteHtml = '<div class="k-note-allergy">過敏注意：' + esc(info.note) + '</div>';
+  } else if (info.note) {
+    noteHtml = '<div class="k-note-other">備註：' + esc(info.note) + '</div>';
+  }
+  const items = (o.items || []).map(function (i) {
+    return '<li><span>' + esc(i.name) + '</span><b>×' + i.qty + '</b></li>';
+  }).join('');
+  const act = o.status === 'new'
+    ? '<div class="k-actions"><button type="button" class="k-btn cook" data-act="cook" data-id="' + esc(o.id) + '">開始製作</button></div>'
+    : o.status === 'cooking'
+      ? '<div class="k-actions"><button type="button" class="k-btn done" data-act="done" data-id="' + esc(o.id) + '">出餐完成</button></div>'
+      : '';
+  return '<div class="k-card ' + esc(o.status || 'new') + '">' +
+    noteHtml +
+    '<div class="k-card-top"><span class="k-order-id">' + esc(o.id) + '</span>' +
+    '<span class="k-table">' + esc(o.tableLabel) + '</span></div>' +
+    '<div class="k-guest">' + esc(o.guestName) + '・' + o.guestSize + ' 人</div>' +
+    '<ul class="k-items">' + items + '</ul>' +
+    '<div class="k-time">' + timeStr(o.createdAt) + ' 送單・已等 ' + mins(o.createdAt) + ' 分鐘</div>' +
+    '<div class="k-total">合計 ' + nt(o.total) + '</div>' +
+    act +
+    '</div>';
+}
+
+function renderKitchen(data) {
+  const cols = [
+    { key: 'new', label: '待製作', items: [] },
+    { key: 'cooking', label: '製作中', items: [] },
+    { key: 'done', label: '已完成', items: [] }
+  ];
+  data.orders.forEach(function (o) {
+    const c = cols.find(function (x) { return x.key === (o.status || 'new'); });
+    if (c) c.items.push(o);
+  });
+  cols.forEach(function (c) {
+    c.items.sort(function (a, b) {
+      const aa = orderAllergyInfo(a).flag ? 0 : 1;
+      const bb = orderAllergyInfo(b).flag ? 0 : 1;
+      if (aa !== bb) return aa - bb;          // 過敏單置頂
+      return a.createdAt - b.createdAt;       // 同類依送單時間
+    });
+  });
+
+  const pending = cols[0].items.length + cols[1].items.length;
+  document.getElementById('kitchenHint').textContent =
+    '尚未完成 ' + pending + ' 單・待製作 ' + cols[0].items.length +
+    '・製作中 ' + cols[1].items.length + '・已完成 ' + cols[2].items.length;
+
+  document.getElementById('kitchenBoard').innerHTML = cols.map(function (c) {
+    const cards = c.items.length
+      ? c.items.map(kitchenCardHtml).join('')
+      : '<div class="k-empty">無訂單</div>';
+    return '<div class="k-col ' + c.key + '">' +
+      '<div class="k-col-head"><span>' + c.label + '</span><span class="k-count">' + c.items.length + '</span></div>' +
+      cards + '</div>';
+  }).join('');
+}
+
+document.getElementById('kitchenBoard').addEventListener('click', function (ev) {
+  const btn = ev.target.closest ? ev.target.closest('button[data-act]') : null;
+  if (!btn) return;
+  const act = btn.getAttribute('data-act');
+  const id = btn.getAttribute('data-id');
+  const data = loadData();
+  const o = data.orders.find(function (x) { return x.id === id; });
+  if (!o) return;
+  if (act === 'cook') o.status = 'cooking';
+  if (act === 'done') o.status = 'done';
+  saveData(data);
+  renderAll(data);
+});
+
+/* ---------- 今日售完設定 ---------- */
+function renderSoldOut(data) {
+  const cats = [];
+  MENU.forEach(function (m) { if (cats.indexOf(m.cat) < 0) cats.push(m.cat); });
+  document.getElementById('soldoutList').innerHTML = cats.map(function (cat) {
+    const items = MENU.filter(function (m) { return m.cat === cat; }).map(function (m) {
+      const sold = isSoldOut(data, m.id);
+      return '<button type="button" class="so-toggle' + (sold ? ' sold' : '') + '" data-menu="' + m.id + '">' +
+        '<span class="so-t-name">' + esc(m.name) + '</span>' +
+        '<span class="so-t-price">' + m.price + ' 元</span>' +
+        '<span class="so-t-state">' + (sold ? '售完' : '有貨') + '</span>' +
+      '</button>';
+    }).join('');
+    return '<div class="so-cat">' + esc(cat) + '</div><div class="so-items">' + items + '</div>';
+  }).join('');
+}
+
+document.getElementById('soldoutList').addEventListener('click', function (ev) {
+  const btn = ev.target.closest ? ev.target.closest('button[data-menu]') : null;
+  if (!btn) return;
+  const id = btn.getAttribute('data-menu');
+  const data = loadData();
+  if (!Array.isArray(data.soldOut)) data.soldOut = [];
+  const i = data.soldOut.indexOf(id);
+  if (i >= 0) data.soldOut.splice(i, 1);
+  else data.soldOut.push(id);
+  saveData(data);
+  renderAll(data);
+});
+
+document.getElementById('clearDone').addEventListener('click', function () {
+  const data = loadData();
+  data.orders = data.orders.filter(function (o) { return o.status !== 'done'; });
+  saveData(data);
+  renderAll(data);
+});
+
+/* ---------- 入座 ---------- */
+let seatTicket = null;
+
+function openSeatPicker(ticket) {
+  const data = loadData();
+  const entry = data.entries.find(function (e) { return e.ticket === ticket; });
+  if (!entry) return;
+  if (entry.status !== 'called') { alert('只有已叫號的客人才能入座'); return; }
+  const fit = data.tables.filter(function (t) { return !t.guest && t.capacity >= entry.partySize; });
+  document.getElementById('seatInfo').textContent = entry.name + '・' + entry.partySize + ' 人（需找坐得下的空桌）';
+  document.getElementById('seatOptions').innerHTML = fit.map(function (t) {
+    return '<button type="button" class="seat-option" data-table="' + esc(t.id) + '">' + esc(t.label) +
+      '<span>可坐 ' + t.capacity + ' 人</span></button>';
+  }).join('');
+  document.getElementById('seatEmpty').hidden = fit.length > 0;
+  seatTicket = ticket;
+  document.getElementById('seatModal').hidden = false;
+}
+
+function closeSeatPicker() {
+  document.getElementById('seatModal').hidden = true;
+  seatTicket = null;
+}
+
+function seatGuest(tableId) {
+  const data = loadData();
+  const table = data.tables.find(function (t) { return t.id === tableId; });
+  if (!table || table.guest) return;
+  const entry = data.entries.find(function (e) { return e.ticket === seatTicket; });
+  if (!entry) return;
+  table.guest = { ticket: entry.ticket, name: entry.name, partySize: entry.partySize, seatedAt: Date.now() };
+  data.entries = data.entries.filter(function (e) { return e.ticket !== entry.ticket; });
+  saveData(data);
+  closeSeatPicker();
+  renderAll(data);
+}
+
+document.getElementById('seatOptions').addEventListener('click', function (ev) {
+  const btn = ev.target.closest ? ev.target.closest('button[data-table]') : null;
+  if (btn) seatGuest(btn.getAttribute('data-table'));
+});
+document.getElementById('seatCancel').addEventListener('click', closeSeatPicker);
+document.getElementById('seatMask').addEventListener('click', closeSeatPicker);
+
+/* ---------- 候位動作 ---------- */
+function handleAction(ev) {
+  const btn = ev.target.closest ? ev.target.closest('button[data-act]') : null;
+  if (!btn || btn.disabled) return;
+  const act = btn.getAttribute('data-act');
+  const ticket = btn.getAttribute('data-id');
+  const data = loadData();
+
+  if (act === 'seat') { saveData(data); renderAll(data); openSeatPicker(ticket); return; }
+
+  const entry = data.entries.find(function (x) { return x.ticket === ticket; });
+  if (!entry) return;
+  if (act === 'call') {
+    entry.status = 'called';
+    entry.calledAt = Date.now();
+    entry.skippedAt = null;
+  } else if (act === 'skip') {
+    entry.status = 'skipped';
+    entry.skippedAt = Date.now();
+    entry.calledAt = null;
+  } else if (act === 'back') {
+    entry.status = 'waiting';
+    entry.seq = data.nextSeq++;
+    entry.skippedAt = null;
+    entry.calledAt = null;
+  }
+  saveData(data);
+  renderAll(data);
+}
+
+function handleTableAction(ev) {
+  const btn = ev.target.closest ? ev.target.closest('button[data-act="clear"]') : null;
+  if (!btn) return;
+  const data = loadData();
+  const t = data.tables.find(function (x) { return x.id === btn.getAttribute('data-table'); });
+  if (!t) return;
+  const unfinished = data.orders.filter(function (o) { return o.tableId === t.id && o.status !== 'done'; });
+  if (unfinished.length) {
+    alert('餐點尚未全部完成（' + unfinished.length + ' 張未完成訂單），請先完成後再翻桌。');
+    return;
+  }
+  const draft = data.drafts[t.id];
+  if (draft && draft.items.length) {
+    alert('該桌尚有待送單（' + draftCount(draft) + ' 項），請先送出或確認後再翻桌。');
+    return;
+  }
+  t.guest = null;
+  delete data.drafts[t.id];
+  saveData(data);
+  renderAll(data);
+}
+
+document.getElementById('waitingList').addEventListener('click', handleAction);
+document.getElementById('skippedList').addEventListener('click', handleAction);
+document.getElementById('tableGrid').addEventListener('click', handleTableAction);
+
+/* ---------- 取號 ---------- */
+const nameInput = document.getElementById('nameInput');
+const errorMsg = document.getElementById('errorMsg');
+const partySizeEl = document.getElementById('partySize');
+let partySize = 1;
+
+function updatePartySize() { partySizeEl.textContent = partySize; }
+
+document.getElementById('incBtn').addEventListener('click', function () { if (partySize < 4) { partySize += 1; updatePartySize(); } });
+document.getElementById('decBtn').addEventListener('click', function () { if (partySize > 1) { partySize -= 1; updatePartySize(); } });
+
+document.getElementById('takeTicketForm').addEventListener('submit', function (e) {
+  e.preventDefault();
+  const name = nameInput.value.trim();
+  if (!name) { errorMsg.classList.add('show'); nameInput.focus(); return; }
+  errorMsg.classList.remove('show');
+  const data = loadData();
+  const ticket = formatTicket(data.nextNumber);
+  data.nextNumber += 1;
+  data.entries.push({
+    ticket: ticket, seq: data.nextSeq++, name: name, partySize: partySize,
+    createdAt: Date.now(), status: 'waiting', calledAt: null, skippedAt: null
+  });
+  saveData(data);
+  document.getElementById('ticketNumber').textContent = ticket;
+  document.getElementById('ticketBox').hidden = false;
+  nameInput.value = '';
+  partySize = 1;
+  updatePartySize();
+  renderAll(data);
+});
+
+nameInput.addEventListener('input', function () { errorMsg.classList.remove('show'); });
+
+/* ---------- 重新整理（重設為開店狀態） ---------- */
+function openResetModal() {
+  document.getElementById('resetModal').hidden = false;
+}
+function closeResetModal() {
+  document.getElementById('resetModal').hidden = true;
+}
+function resetShop() {
+  const data = {
+    nextNumber: 1,
+    nextSeq: 1,
+    nextOrderNo: 1,
+    entries: [],
+    tables: TABLE_LAYOUT.map(function (t) { return { id: t.id, label: t.label, capacity: t.capacity, guest: null }; }),
+    drafts: {},
+    soldOut: [],
+    orders: [],
+    checkouts: []
+  };
+  saveData(data);
+
+  /* 重置畫面狀態 */
+  orderState.tableId = null;
+  nameInput.value = '';
+  errorMsg.classList.remove('show');
+  document.getElementById('ticketBox').hidden = true;
+  document.getElementById('sentBanner').hidden = true;
+  partySize = 1;
+  updatePartySize();
+  document.getElementById('allergyNote').value = '';
+  closeResetModal();
+  renderAll(data);
+  switchTab('waiting');
+  showBanner('✓ 已重新整理，資料已重設為開店狀態');
+}
+
+document.getElementById('resetBtn').addEventListener('click', openResetModal);
+document.getElementById('resetCancel').addEventListener('click', closeResetModal);
+document.getElementById('resetMask').addEventListener('click', closeResetModal);
+document.getElementById('resetConfirm').addEventListener('click', resetShop);
+
+/* ---------- 總渲染 ---------- */
+function renderBadges(data) {
+  const g = groupEntries(data);
+  const candidateCount = g.waiting.length + g.called.length;
+  const diningCount = data.tables.filter(function (t) { return !!t.guest; }).length;
+  const pendingOrders = data.orders.filter(function (o) { return o.status !== 'done'; }).length;
+  const today = todayCheckouts(data);
+  const todayTotal = today.reduce(function (s, c) { return s + c.amount; }, 0);
+  document.getElementById('badgeWaiting').textContent = candidateCount;
+  document.getElementById('badgeOrder').textContent = diningCount;
+  document.getElementById('badgeKitchen').textContent = pendingOrders;
+  const ds = document.getElementById('dailyStat');
+  if (ds) ds.innerHTML = '今日已結帳 <b>' + nt(todayTotal) + '</b>・' + today.length + ' 桌';
+  document.getElementById('tabSummary').textContent =
+    '候位 ' + candidateCount + ' 組・用餐 ' + diningCount + ' 桌・廚房未完成 ' + pendingOrders +
+    ' 單・今日已結帳 ' + nt(todayTotal);
+}
+
+function renderAll(data) {
+  renderList(data);
+  renderTables(data);
+  renderOrderTab(data);
+  renderKitchen(data);
+  renderSoldOut(data);
+  renderBadges(data);
+}
+
+function init() {
+  buildMenu();
+  renderAll(loadData());
+  setInterval(function () { renderAll(loadData()); }, 15000);
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
